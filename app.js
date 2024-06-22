@@ -3,7 +3,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
-
+const mongoose = require("mongoose");
 const _ = require("lodash")
 
 
@@ -12,18 +12,27 @@ const aboutContent = "Hac habitasse platea dictumst vestibulum rhoncus est pelle
 const contactContent = "Scelerisque eleifend donec pretium vulputate sapien. Rhoncus urna neque viverra justo nec ultrices. Arcu dui vivamus arcu felis bibendum. Consectetur adipiscing elit duis tristique. Risus viverra adipiscing at in tellus integer feugiat. Sapien nec sagittis aliquam malesuada bibendum arcu vitae. Consequat interdum varius sit amet mattis. Iaculis nunc sed augue lacus. Interdum posuere lorem ipsum dolor sit amet consectetur adipiscing elit. Pulvinar elementum integer enim neque. Ultrices gravida dictum fusce ut placerat orci nulla. Mauris in aliquam sem fringilla ut morbi tincidunt. Tortor posuere ac ut consequat semper viverra nam libero.";
 
 const app = express();
-const posts = [];
 app.set('view engine', 'ejs');
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
 
 
+mongoose.connect("mongodb://localhost:27017/blogDB");
 
+const blogSchema = {
+  title:  String,
+  content: String
+}
+
+const Post = mongoose.model("Post", blogSchema);
 
 app.get("/", function(req, res) {
-
-  res.render("home", {homeContent: homeStartingContent, posts: posts});
+  Post.find()
+    .then(function(posts) {
+      res.render("home", {homeContent: homeStartingContent, posts: posts});
+    })
+  
 })
 
 
@@ -42,23 +51,24 @@ app.get("/compose", function(req, res) {
 })
 
 app.post("/compose", function(req, res) {
-  var post = {
+  var post = new Post({
     title: req.body.postTitle,
     content: req.body.content
-  };
-  posts.push(post);
+  });
+  post.save();
+
   res.redirect("/");
 })
 
-app.get("/posts/:postName", function(req, res) {
-  var requestTitle = _.lowerCase(req.params.postName);
-  posts.forEach(function(post) {
-    if(_.lowerCase(post.title) === requestTitle) {
-      res.render("post", {post: post})
-    }
-    
+app.get("/posts/:postId", function(req, res) {
+  var requestID = req.params.postId;
+  console.log(requestID);
+  Post.find({_id: requestID})
+    .then(function(post) {
+      console.log(post);
+      res.render("post", {post: post[0]})
+    })
 
-  })
 })
 
 
